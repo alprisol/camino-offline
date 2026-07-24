@@ -1,4 +1,4 @@
-const CACHE_NAME = "camino-offline-v2";
+const CACHE_NAME = "camino-offline-v3";
 const BASE_URL = self.registration.scope;
 const assetUrl = (path = "") => new URL(path, BASE_URL).toString();
 const APP_SHELL = assetUrl();
@@ -45,7 +45,12 @@ self.addEventListener("message", (event) => {
       return false;
     }
   });
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(localResources)));
+  const caching = caches
+    .open(CACHE_NAME)
+    .then((cache) => cache.addAll(localResources))
+    .then(() => event.ports[0]?.postMessage({ ok: true }))
+    .catch(() => event.ports[0]?.postMessage({ ok: false }));
+  event.waitUntil(caching);
 });
 
 async function rangedMapResponse(request) {

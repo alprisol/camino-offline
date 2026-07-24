@@ -3,7 +3,13 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const XUNTA = "https://tpgal-ws-externos.xunta.gal/tpgal_ws/rest";
-const SNAPSHOT_START = new Date("2026-07-27T00:00:00+02:00");
+const MADRID_DATE = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Madrid",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const SNAPSHOT_START = new Date(`${MADRID_DATE.format(new Date())}T12:00:00Z`);
 const SNAPSHOT_DAYS = 7;
 
 const stageConfig = [
@@ -176,7 +182,7 @@ function isoDate(date) {
 function snapshotDates() {
   return Array.from({ length: SNAPSHOT_DAYS }, (_, index) => {
     const date = new Date(SNAPSHOT_START);
-    date.setDate(date.getDate() + index);
+    date.setUTCDate(date.getUTCDate() + index);
     return date;
   });
 }
@@ -351,7 +357,12 @@ async function fetchWater(stages) {
     const maxLon = Math.max(...stage.points.map((point) => point[0])) + 0.015;
     const maxLat = Math.max(...stage.points.map((point) => point[1])) + 0.012;
     const bbox = `${minLat},${minLon},${maxLat},${maxLon}`;
-    const query = `[out:json][timeout:60];node["amenity"="drinking_water"](${bbox});out body;`;
+    const query = `[out:json][timeout:60];
+      (
+        nwr["amenity"~"^(drinking_water|water_point)$"](${bbox});
+        nwr["drinking_water"="yes"](${bbox});
+      );
+      out center tags;`;
     let data = null;
     for (const endpoint of [
       "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
@@ -410,6 +421,14 @@ async function fetchWater(stages) {
       routeKm: Number(nearest.km.toFixed(1)),
       deviationM: Math.round(nearest.distanceKm * 1000),
       source: "OpenStreetMap",
+      kind:
+        element.tags?.natural === "spring"
+          ? "Spring"
+          : element.tags?.man_made === "water_tap"
+            ? "Water tap"
+            : element.tags?.amenity === "water_point"
+              ? "Water point"
+              : "Drinking fountain",
       osmUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`,
     });
   }
@@ -439,6 +458,32 @@ async function main() {
     existing.generatedAt = new Date().toISOString();
     await writeFile(existingPath, JSON.stringify(existing));
     console.log(`Wrote ${existing.fountains.length} fountains.`);
+    return;
+  }
+
+  if (process.argv.includes("--refresh-current")) {
+    const existingPath = path.join(ROOT, "public", "data", "camino-data.json");
+    const existing = JSON.parse(await readFile(existingPath, "utf8"));
+    const refreshedStops = [];
+    for (const stage of stages) {
+      const candidates = existing.stops.filter((stop) => stop.stageId === stage.id);
+      console.log(`Refreshing ${candidates.length} stops for stage ${stage.id}…`);
+      refreshedStops.push(...(await enrichStops(stage, candidates)));
+    }
+    console.log("Refreshing drinking-water points…");
+    existing.stops = refreshedStops;
+    existing.fountains = await fetchWater(stages);
+    existing.generatedAt = new Date().toISOString();
+    existing.timetableSnapshot = {
+      start: isoDate(snapshotDates()[0]),
+      end: isoDate(snapshotDates().at(-1)),
+      timezone: "Europe/Madrid",
+      note: "Official scheduled times snapshot. Intermediate-stop and arrival times are approximate and can change.",
+    };
+    await writeFile(existingPath, JSON.stringify(existing));
+    console.log(
+      `Wrote ${existing.stops.length} useful stops and ${existing.fountains.length} drinking-water points.`,
+    );
     return;
   }
 

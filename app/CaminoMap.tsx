@@ -50,6 +50,7 @@ type Fountain = {
   deviationM: number;
   routeKm: number;
   stageId: number;
+  kind?: string;
 };
 
 type Stage = {
@@ -80,8 +81,16 @@ const DAY_FORMAT = new Intl.DateTimeFormat("en-GB", {
 });
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
   day: "numeric",
   month: "short",
+  timeZone: "Europe/Madrid",
+});
+
+const DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
   timeZone: "Europe/Madrid",
 });
 
@@ -101,28 +110,44 @@ function assetPath(path: string) {
   return `${basePath()}${path.replace(/^\/+/, "")}`;
 }
 
-function canonicalDates(start: string) {
-  const base = new Date(`${start}T12:00:00+02:00`);
+function currentDates() {
+  const base = new Date(`${DATE_KEY_FORMAT.format(new Date())}T12:00:00Z`);
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(base);
-    date.setDate(date.getDate() + index);
+    date.setUTCDate(date.getUTCDate() + index);
     return date;
   });
 }
 
-function minutesBetween(departure: string, arrival: string) {
-  const [depHour, depMinute] = departure.split(":").map(Number);
-  const [arrHour, arrMinute] = arrival.split(":").map(Number);
-  let result = arrHour * 60 + arrMinute - (depHour * 60 + depMinute);
-  if (result < 0) result += 24 * 60;
-  return result;
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  if (!hours) return `${remainder} min`;
-  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+function waterDropImage() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 48;
+  canvas.height = 56;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable");
+
+  context.beginPath();
+  context.moveTo(24, 3);
+  context.bezierCurveTo(21, 10, 8, 23, 8, 34);
+  context.bezierCurveTo(8, 46, 15, 53, 24, 53);
+  context.bezierCurveTo(33, 53, 40, 46, 40, 34);
+  context.bezierCurveTo(40, 23, 27, 10, 24, 3);
+  context.closePath();
+  context.fillStyle = "#087cc1";
+  context.fill();
+  context.lineWidth = 5;
+  context.strokeStyle = "#ffffff";
+  context.stroke();
+
+  context.beginPath();
+  context.arc(18, 32, 4, 0, Math.PI * 2);
+  context.fillStyle = "rgba(255,255,255,.55)";
+  context.fill();
+  return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function toPointCollection<T extends Stop | Fountain>(items: T[]) {
@@ -146,24 +171,17 @@ function toPointCollection<T extends Stop | Fountain>(items: T[]) {
 
 function StopSheet({
   stop,
-  snapshotStart,
   onClose,
 }: {
   stop: Stop;
-  snapshotStart: string;
   onClose: () => void;
 }) {
-  const dates = useMemo(() => canonicalDates(snapshotStart), [snapshotStart]);
-  const initialIndex = useMemo(() => {
-    const today = new Date().getDay();
-    const match = dates.findIndex((date) => date.getDay() === today);
-    return match >= 0 ? match : 0;
-  }, [dates]);
-  const [selectedDay, setSelectedDay] = useState(initialIndex);
+  const dates = useMemo(currentDates, []);
+  const [selectedDay, setSelectedDay] = useState(0);
 
-  useEffect(() => setSelectedDay(initialIndex), [stop.id, initialIndex]);
+  useEffect(() => setSelectedDay(0), [stop.id]);
 
-  const selectedDate = dates[selectedDay].toISOString().slice(0, 10);
+  const selectedDate = dateKey(dates[selectedDay]);
   const services = stop.services.filter((service) => service.date === selectedDate);
 
   return (
@@ -172,10 +190,7 @@ function StopSheet({
       <button className="close-button" type="button" onClick={onClose} aria-label="Close bus details">
         ×
       </button>
-      <div className="sheet-kicker">
-        <span className="bus-mini">B</span>
-        Stage {stop.stageId} · km {stop.routeKm.toFixed(1)}
-      </div>
+      <div className="sheet-kicker"><span className="bus-mini">B</span> Bus stop</div>
       <h2>{stop.name}</h2>
       <p className="walk-away">
         {stop.deviationM < 80 ? "On the Camino" : `about ${stop.deviationM} m from the Camino`}
@@ -199,56 +214,34 @@ function StopSheet({
 
       <div className="service-list" aria-live="polite">
         {services.length ? (
-          services.map((service, index) => {
-            const duration = minutesBetween(service.departure, service.arrival);
-            return (
-              <article
-                className="service-card"
-                key={`${service.date}-${service.departure}-${service.lineCode}-${index}`}
-              >
-                <div className="time-row">
-                  <div>
-                    <strong>{service.departure}</strong>
-                    <span>depart</span>
-                  </div>
-                  <div className="journey-line">
-                    <span>{formatDuration(duration)}</span>
-                  </div>
-                  <div>
-                    <strong>{service.arrival}</strong>
-                    <span>{service.destination}</span>
-                  </div>
-                </div>
-                <div className="line-row">
-                  <span className="line-code">{service.lineCode}</span>
-                  <strong>{service.transfer ? "1 change" : "Direct"}</strong>
-                </div>
-                <p className="itinerary">{service.itinerary}</p>
-                {service.transfer && (
-                  <div className="transfer-box">
-                    Change at <strong>{service.transfer.at}</strong> · arrive {service.transfer.arrive},
-                    depart {service.transfer.depart} on {service.transfer.lineCode}
-                  </div>
-                )}
-                <div className="service-meta">
-                  <span>{service.operator}</span>
-                  {service.onDemand && <span className="demand-chip">On request</span>}
-                </div>
-              </article>
-            );
-          })
+          services.map((service, index) => (
+            <article
+              className="service-card"
+              key={`${service.date}-${service.departure}-${service.lineCode}-${index}`}
+            >
+              <time dateTime={service.departure}>{service.departure}</time>
+              <div className="service-summary">
+                <strong>→ {service.destination}</strong>
+                <span>
+                  Arrives {service.arrival} · {service.lineCode} ·{" "}
+                  {service.transfer ? `change at ${service.transfer.at}` : "direct"}
+                </span>
+              </div>
+              {service.onDemand && (
+                <a className="demand-chip" href="tel:+34981546100">Call first</a>
+              )}
+            </article>
+          ))
         ) : (
           <div className="empty-day">
-            <strong>No listed service</strong>
-            <span>Try another day in this timetable snapshot.</span>
+            <strong>No buses {selectedDay === 0 ? "today" : DATE_FORMAT.format(dates[selectedDay])}</strong>
+            <span>Choose another day.</span>
           </div>
         )}
       </div>
 
       <footer className="sheet-note">
-        Official Xunta schedule snapshot for {DATE_FORMAT.format(dates[0])}–{DATE_FORMAT.format(dates[6])}.
-        Intermediate times are approximate. On-request services should be confirmed at{" "}
-        <a href="tel:+34981546100">981 546 100</a>.
+        Official offline timetable · <a href="https://www.bus.gal/" target="_blank" rel="noreferrer">verify at bus.gal</a>
       </footer>
     </section>
   );
@@ -303,6 +296,7 @@ export default function CaminoMap() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const [bearing, setBearing] = useState(0);
 
   useEffect(() => {
     fetch(assetPath("data/camino-data.json"))
@@ -322,12 +316,44 @@ export default function CaminoMap() {
           scope: basePath(),
         });
         await navigator.serviceWorker.ready;
-        setOfflineReady(true);
+        if (registration.installing) {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = window.setTimeout(
+              () => reject(new Error("Offline worker installation timed out")),
+              90_000,
+            );
+            registration.installing?.addEventListener("statechange", (event) => {
+              const state = (event.target as ServiceWorker).state;
+              if (state === "activated") {
+                window.clearTimeout(timeout);
+                resolve();
+              }
+              if (state === "redundant") {
+                window.clearTimeout(timeout);
+                reject(new Error("Offline worker installation failed"));
+              }
+            });
+          });
+        }
         const resources = performance
           .getEntriesByType("resource")
           .map((entry) => entry.name)
-          .filter((url) => url.startsWith(window.location.origin));
-        registration.active?.postMessage({ type: "CACHE_RESOURCES", resources });
+          .filter((url) => url.startsWith(`${window.location.origin}${basePath()}`));
+        const channel = new MessageChannel();
+        const cached = new Promise<boolean>((resolve) => {
+          const timeout = window.setTimeout(() => resolve(false), 90_000);
+          channel.port1.onmessage = (event) => {
+            window.clearTimeout(timeout);
+            resolve(Boolean(event.data?.ok));
+          };
+        });
+        const worker = registration.active || navigator.serviceWorker.controller;
+        if (!worker) throw new Error("Offline worker is unavailable");
+        worker.postMessage({ type: "CACHE_RESOURCES", resources: [...new Set(resources)] }, [
+          channel.port2,
+        ]);
+        setOfflineReady(await cached);
+        navigator.storage?.persist?.().catch(() => false);
       } catch {
         setOfflineReady(false);
       }
@@ -369,8 +395,10 @@ export default function CaminoMap() {
     });
     mapRef.current = map;
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");
+    map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", () => {
+      map.addImage("water-drop", waterDropImage(), { pixelRatio: 2 });
       map.addSource("camino-routes", {
         type: "geojson",
         data: data.routes,
@@ -467,32 +495,45 @@ export default function CaminoMap() {
         data: toPointCollection(data.fountains),
         cluster: true,
         clusterMaxZoom: 14,
-        clusterRadius: 34,
+        clusterRadius: 38,
       });
       map.addLayer({
         id: "water-clusters",
         type: "circle",
         source: "fountains",
         filter: ["has", "point_count"],
-        minzoom: 12.2,
+        minzoom: 11.2,
         paint: {
-          "circle-color": "#2b8fb8",
-          "circle-radius": ["step", ["get", "point_count"], 9, 5, 12, 12, 15],
+          "circle-color": "#087cc1",
+          "circle-radius": ["step", ["get", "point_count"], 13, 5, 16, 12, 19],
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2,
+          "circle-stroke-width": 2.5,
         },
       });
       map.addLayer({
+        id: "water-cluster-count",
+        type: "symbol",
+        source: "fountains",
+        filter: ["has", "point_count"],
+        minzoom: 11.2,
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Noto Sans Medium"],
+          "text-size": 11,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
+      map.addLayer({
         id: "water-points",
-        type: "circle",
+        type: "symbol",
         source: "fountains",
         filter: ["!", ["has", "point_count"]],
-        minzoom: 12.2,
-        paint: {
-          "circle-color": "#2b8fb8",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12.2, 4, 15, 7],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2,
+        minzoom: 11.2,
+        layout: {
+          "icon-image": "water-drop",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 11.2, 0.82, 15, 1.12],
+          "icon-allow-overlap": true,
+          "icon-padding": 2,
         },
       });
 
@@ -524,7 +565,7 @@ export default function CaminoMap() {
         new maplibregl.Popup({ closeButton: false, offset: 10 })
           .setLngLat(fountain.coordinates)
           .setHTML(
-            `<strong>${fountain.name}</strong><span>${fountain.deviationM < 60 ? "On the Camino" : `${fountain.deviationM} m from the route`}</span>`,
+            `<strong>${fountain.name}</strong><span>${fountain.kind || "Drinking water"} · ${fountain.deviationM < 60 ? "on the Camino" : `${fountain.deviationM} m from the route`}</span>`,
           )
           .addTo(map);
       });
@@ -579,6 +620,10 @@ export default function CaminoMap() {
     );
   };
 
+  const resetNorth = () => {
+    mapRef.current?.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+  };
+
   return (
     <main className="app-shell">
       <div ref={mapContainer} className="map-canvas" aria-label="Offline Camino de Santiago map" />
@@ -619,6 +664,11 @@ export default function CaminoMap() {
         </nav>
       )}
 
+      <button className="north-button" type="button" onClick={resetNorth} aria-label="Reset map orientation to north">
+        <span style={{ transform: `rotate(${-bearing}deg)` }} aria-hidden="true">↑</span>
+        <small>N</small>
+      </button>
+
       <button className="locate-button" type="button" onClick={locateUser} aria-label="Zoom to my current position">
         <span aria-hidden="true" />
       </button>
@@ -628,7 +678,6 @@ export default function CaminoMap() {
       {selectedStop && data && (
         <StopSheet
           stop={selectedStop}
-          snapshotStart={data.timetableSnapshot.start}
           onClose={() => setSelectedStop(null)}
         />
       )}

@@ -43,13 +43,20 @@ test("bundles the offline map, data, worker, and manifest", async () => {
   );
   assert.equal(data.stages.length, 4);
   assert.equal(data.stops.length, 65);
-  assert.equal(data.fountains.length, 126);
+  assert.ok(data.fountains.length >= 130);
   assert.ok(data.stops.every((stop) => stop.services.length > 0));
+  assert.ok(
+    data.stops.some((stop) =>
+      stop.services.some((service) => service.date === data.timetableSnapshot.start),
+    ),
+  );
 
-  await Promise.all([
+  const [, worker] = await Promise.all([
     access(new URL("../public/data/camino.pmtiles", import.meta.url)),
-    access(new URL("../public/sw.js", import.meta.url)),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
     access(new URL("../public/manifest.webmanifest", import.meta.url)),
     access(new URL("../public/og.png", import.meta.url)),
   ]);
+  assert.match(worker, /data\/camino\.pmtiles/);
+  assert.match(worker, /postMessage\(\{ ok: true \}\)/);
 });

@@ -208,8 +208,9 @@ button {
   align-items: center;
   gap: 9px;
   min-height: 37px;
-  padding: 4px 6px;
+  padding: 4px 6px 4px 5px;
   border: 0;
+  border-left: 5px solid transparent;
   border-radius: 14px;
   background: transparent;
   text-align: left;
@@ -410,7 +411,7 @@ button {
   margin: 20px 54px 0 22px;
 }
 
-.bus-sheet-heading img {
+.bus-sheet-heading .bus-symbol {
   width: 34px;
   height: 34px;
   flex: 0 0 auto;
@@ -647,10 +648,14 @@ button {
 }
 
 .legend-bus {
-  display: block;
   width: 24px;
   height: 24px;
+  flex: 0 0 auto;
   object-fit: contain;
+}
+
+.bus-symbol {
+  display: block;
 }
 
 .legend-water {

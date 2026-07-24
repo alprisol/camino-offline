@@ -153,23 +153,22 @@ function waterDropImage() {
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-function waterDropOutlineImage() {
+function waterDropClusterImage() {
   const canvas = document.createElement("canvas");
-  canvas.width = 64;
-  canvas.height = 72;
+  canvas.width = 72;
+  canvas.height = 84;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable");
 
   context.beginPath();
-  context.moveTo(32, 4);
-  context.bezierCurveTo(28, 14, 10, 30, 10, 45);
-  context.bezierCurveTo(10, 60, 20, 68, 32, 68);
-  context.bezierCurveTo(44, 68, 54, 60, 54, 45);
-  context.bezierCurveTo(54, 30, 36, 14, 32, 4);
+  context.moveTo(36, 4.5);
+  context.bezierCurveTo(31.5, 15, 12, 34.5, 12, 51);
+  context.bezierCurveTo(12, 69, 22.5, 79.5, 36, 79.5);
+  context.bezierCurveTo(49.5, 79.5, 60, 69, 60, 51);
+  context.bezierCurveTo(60, 34.5, 40.5, 15, 36, 4.5);
   context.closePath();
-  context.lineWidth = 6;
-  context.strokeStyle = "#087cc1";
-  context.stroke();
+  context.fillStyle = "#087cc1";
+  context.fill();
 
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
@@ -226,7 +225,12 @@ function StopSheet({
         ×
       </button>
       <div className="bus-sheet-heading">
-        <img src={assetPath("icons/bus-silhouette.png")} alt="" aria-hidden="true" />
+        <img
+          className="bus-symbol"
+          src={assetPath("icons/bus-single.png")}
+          alt=""
+          aria-hidden="true"
+        />
         <h2>{stop.name}</h2>
       </div>
 
@@ -336,7 +340,12 @@ function InfoSheet({ data, onClose }: { data: CaminoData; onClose: () => void })
       </p>
       <div className="legend">
         <span>
-          <img className="legend-bus" src={assetPath("icons/bus-silhouette.png")} alt="" />
+          <img
+            className="bus-symbol legend-bus"
+            src={assetPath("icons/bus-single.png")}
+            alt=""
+            aria-hidden="true"
+          />
           bus to the stage finish
         </span>
         <span><i className="legend-water" /> drinking water</span>
@@ -456,14 +465,16 @@ export default function CaminoMap() {
     map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", async () => {
-      const [busIcon, shellIcon] = await Promise.all([
-        map.loadImage(assetPath("icons/bus-silhouette.png")),
+      const [busClusterIcon, busSingleIcon, shellIcon] = await Promise.all([
+        map.loadImage(assetPath("icons/bus-cluster.png")),
+        map.loadImage(assetPath("icons/bus-single.png")),
         map.loadImage(assetPath("icons/santiago-shell.png")),
       ]);
-      map.addImage("bus-silhouette", busIcon.data, { pixelRatio: 12 });
+      map.addImage("bus-stop-cluster", busClusterIcon.data, { pixelRatio: 11 });
+      map.addImage("bus-silhouette", busSingleIcon.data, { pixelRatio: 10 });
       map.addImage("santiago-shell", shellIcon.data, { pixelRatio: 12 });
       map.addImage("water-drop", waterDropImage(), { pixelRatio: 2 });
-      map.addImage("water-drop-outline", waterDropOutlineImage(), { pixelRatio: 2 });
+      map.addImage("water-drop-cluster", waterDropClusterImage(), { pixelRatio: 2 });
       map.addSource("camino-routes", {
         type: "geojson",
         data: data.routes,
@@ -474,8 +485,8 @@ export default function CaminoMap() {
         source: "camino-routes",
         paint: {
           "line-color": "#34413b",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 5.5, 14, 9.5],
-          "line-opacity": 0.75,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 7, 14, 11],
+          "line-opacity": 0.68,
         },
       });
       map.addLayer({
@@ -484,8 +495,8 @@ export default function CaminoMap() {
         source: "camino-routes",
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 14, 5],
-          "line-opacity": 0.98,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 4, 14, 7],
+          "line-opacity": 1,
         },
       });
 
@@ -502,14 +513,14 @@ export default function CaminoMap() {
         source: "bus-stops",
         filter: ["has", "point_count"],
         layout: {
-          "icon-image": "bus-silhouette",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 0.95, 12.5, 1.1],
+          "icon-image": "bus-stop-cluster",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 0.9, 12.5, 1.05],
           "icon-allow-overlap": true,
           "icon-padding": 4,
           "text-field": ["get", "point_count_abbreviated"],
           "text-font": ["Noto Sans Medium"],
           "text-size": ["interpolate", ["linear"], ["zoom"], 8.8, 11, 12.5, 13],
-          "text-offset": [0, 0.2],
+          "text-offset": [0, 0.18],
           "text-allow-overlap": true,
         },
         paint: {
@@ -525,7 +536,7 @@ export default function CaminoMap() {
         filter: ["!", ["has", "point_count"]],
         layout: {
           "icon-image": "bus-silhouette",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.64, 15, 0.82],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.72, 15, 0.9],
           "icon-allow-overlap": false,
           "icon-padding": 5,
         },
@@ -544,8 +555,8 @@ export default function CaminoMap() {
         source: "fountains",
         filter: ["has", "point_count"],
         layout: {
-          "icon-image": "water-drop-outline",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 1.02, 13, 1.2],
+          "icon-image": "water-drop-cluster",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 1.05, 13, 1.25],
           "icon-allow-overlap": true,
           "icon-padding": 4,
           "text-field": ["get", "point_count_abbreviated"],
@@ -555,9 +566,9 @@ export default function CaminoMap() {
           "text-allow-overlap": true,
         },
         paint: {
-          "text-color": "#087cc1",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 1.4,
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(0,79,124,.34)",
+          "text-halo-width": 0.8,
         },
       });
       map.addLayer({
@@ -724,7 +735,12 @@ export default function CaminoMap() {
       {data && (
         <nav className="stage-menu" aria-label="Zoom to a Camino stage">
           {data.stages.map((stage) => (
-            <button type="button" onClick={() => focusStage(stage)} key={stage.id}>
+            <button
+              type="button"
+              onClick={() => focusStage(stage)}
+              style={{ borderLeftColor: stage.color }}
+              key={stage.id}
+            >
               <span className="stage-number" style={{ backgroundColor: stage.color }}>{stage.id}</span>
               <span className="stage-copy">
                 <strong>{stage.shortName}</strong>

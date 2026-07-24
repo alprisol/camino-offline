@@ -65,13 +65,15 @@ test("bundles the offline map, data, worker, and manifest", async () => {
     access(new URL("../public/manifest.webmanifest", import.meta.url)),
     access(new URL("../public/og.png", import.meta.url)),
     access(new URL("../public/fonts/roboto/roboto-latin-variable.woff2", import.meta.url)),
-    access(new URL("../public/icons/bus-silhouette.png", import.meta.url)),
+    access(new URL("../public/icons/bus-cluster.png", import.meta.url)),
+    access(new URL("../public/icons/bus-single.png", import.meta.url)),
     access(new URL("../public/icons/gps-position.png", import.meta.url)),
     access(new URL("../public/icons/santiago-shell.png", import.meta.url)),
   ]);
   assert.match(worker, /data\/camino\.pmtiles/);
   assert.match(worker, /fonts\/roboto\/roboto-latin-variable\.woff2/);
-  assert.match(worker, /icons\/bus-silhouette\.png/);
+  assert.match(worker, /icons\/bus-cluster\.png/);
+  assert.match(worker, /icons\/bus-single\.png/);
   assert.match(worker, /icons\/gps-position\.png/);
   assert.match(worker, /icons\/santiago-shell\.png/);
   assert.match(worker, /postMessage\(\{ ok: true \}\)/);
@@ -83,8 +85,8 @@ test("bundles the offline map, data, worker, and manifest", async () => {
   assert.doesNotMatch(styles, /font-family:\s*(?:Inter|Georgia|.*Times New Roman)/);
 
   const mapSource = await readFile(new URL("../app/CaminoMap.tsx", import.meta.url), "utf8");
-  assert.match(mapSource, /id: "bus-clusters"[\s\S]*"icon-image": "bus-silhouette"/);
-  assert.match(mapSource, /id: "water-clusters"[\s\S]*"icon-image": "water-drop-outline"/);
+  assert.match(mapSource, /id: "bus-clusters"[\s\S]*"icon-image": "bus-stop-cluster"/);
+  assert.match(mapSource, /id: "water-clusters"[\s\S]*"icon-image": "water-drop-cluster"/);
   assert.match(mapSource, /id: "cathedral-marker"[\s\S]*"icon-image": "santiago-shell"/);
   assert.match(mapSource, /CATHEDRAL_COORDINATES: Coordinates = \[-8\.5446277, 42\.8804004\]/);
 });

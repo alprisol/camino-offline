@@ -110,8 +110,9 @@ function assetPath(path: string) {
   return `${basePath()}${path.replace(/^\/+/, "")}`;
 }
 
-function currentDates() {
+function currentDates(offsetDays = 0) {
   const base = new Date(`${DATE_KEY_FORMAT.format(new Date())}T12:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + offsetDays);
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(base);
     date.setUTCDate(date.getUTCDate() + index);
@@ -176,40 +177,72 @@ function StopSheet({
   stop: Stop;
   onClose: () => void;
 }) {
-  const dates = useMemo(currentDates, []);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const dates = useMemo(() => currentDates(weekOffset), [weekOffset]);
   const [selectedDay, setSelectedDay] = useState(0);
 
-  useEffect(() => setSelectedDay(0), [stop.id]);
+  useEffect(() => {
+    setWeekOffset(0);
+    setSelectedDay(0);
+  }, [stop.id]);
 
   const selectedDate = dateKey(dates[selectedDay]);
-  const services = stop.services.filter((service) => service.date === selectedDate);
+  const exactServices = stop.services.filter((service) => service.date === selectedDate);
+  const templateDate = [...new Set(stop.services.map((service) => service.date))].find(
+    (serviceDate) =>
+      new Date(`${serviceDate}T12:00:00Z`).getUTCDay() === dates[selectedDay].getUTCDay(),
+  );
+  const services = exactServices.length
+    ? exactServices
+    : stop.services.filter((service) => service.date === templateDate);
 
   return (
-    <section className="detail-sheet" aria-label={`Bus times for ${stop.name}`}>
+    <section className="detail-sheet bus-sheet" aria-label={`Bus times for ${stop.name}`}>
       <div className="sheet-handle" aria-hidden="true" />
       <button className="close-button" type="button" onClick={onClose} aria-label="Close bus details">
         ×
       </button>
-      <div className="sheet-kicker"><span className="bus-mini">B</span> Bus stop</div>
       <h2>{stop.name}</h2>
-      <p className="walk-away">
-        {stop.deviationM < 80 ? "On the Camino" : `about ${stop.deviationM} m from the Camino`}
-      </p>
 
-      <div className="day-strip" role="tablist" aria-label="Choose timetable day">
-        {dates.map((date, index) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedDay === index}
-            className={selectedDay === index ? "day-button active" : "day-button"}
-            onClick={() => setSelectedDay(index)}
-            key={date.toISOString()}
-          >
-            <span>{DAY_FORMAT.format(date)}</span>
-            <strong>{date.getDate()}</strong>
-          </button>
-        ))}
+      <div className="date-picker">
+        <button
+          className="date-arrow"
+          type="button"
+          disabled={weekOffset === 0}
+          onClick={() => {
+            setWeekOffset((value) => Math.max(0, value - 7));
+            setSelectedDay(0);
+          }}
+          aria-label="Previous week"
+        >
+          ‹
+        </button>
+        <div className="day-strip" role="tablist" aria-label="Choose timetable day">
+          {dates.map((date, index) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedDay === index}
+              className={selectedDay === index ? "day-button active" : "day-button"}
+              onClick={() => setSelectedDay(index)}
+              key={date.toISOString()}
+            >
+              <span>{DAY_FORMAT.format(date)}</span>
+              <strong>{date.getUTCDate()}</strong>
+            </button>
+          ))}
+        </div>
+        <button
+          className="date-arrow"
+          type="button"
+          onClick={() => {
+            setWeekOffset((value) => value + 7);
+            setSelectedDay(0);
+          }}
+          aria-label="Next week"
+        >
+          ›
+        </button>
       </div>
 
       <div className="service-list" aria-live="polite">
@@ -219,17 +252,13 @@ function StopSheet({
               className="service-card"
               key={`${service.date}-${service.departure}-${service.lineCode}-${index}`}
             >
-              <time dateTime={service.departure}>{service.departure}</time>
-              <div className="service-summary">
-                <strong>→ {service.destination}</strong>
-                <span>
-                  Arrives {service.arrival} · {service.lineCode} ·{" "}
-                  {service.transfer ? `change at ${service.transfer.at}` : "direct"}
-                </span>
+              <strong className="service-destination">{service.destination}</strong>
+              <div className="service-times">
+                <time dateTime={service.departure}>{service.departure}</time>
+                <span aria-hidden="true">→</span>
+                <time dateTime={service.arrival}>{service.arrival}</time>
               </div>
-              {service.onDemand && (
-                <a className="demand-chip" href="tel:+34981546100">Call first</a>
-              )}
+              <span className="service-line">{service.lineCode} · {service.itinerary}</span>
             </article>
           ))
         ) : (
@@ -241,7 +270,7 @@ function StopSheet({
       </div>
 
       <footer className="sheet-note">
-        Official offline timetable · <a href="https://www.bus.gal/" target="_blank" rel="noreferrer">verify at bus.gal</a>
+        Offline weekly timetable · <a href="https://www.bus.gal/" target="_blank" rel="noreferrer">verify at bus.gal</a>
       </footer>
     </section>
   );

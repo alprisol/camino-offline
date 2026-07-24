@@ -396,17 +396,49 @@ button {
   letter-spacing: -0.025em;
 }
 
+.bus-sheet h2 {
+  margin-top: 22px;
+  font-size: clamp(21px, 5.5vw, 28px);
+}
+
 .walk-away {
   margin: 7px 22px 0;
   color: var(--muted);
   font-size: 12px;
 }
 
+.date-picker {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 4px;
+  margin: 18px 16px 12px;
+}
+
 .day-strip {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin: 18px 16px 12px;
+  gap: 3px;
+}
+
+.date-arrow {
+  display: grid;
+  width: 28px;
+  height: 34px;
+  padding: 0 0 3px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: #ece9e0;
+  color: var(--green);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.date-arrow:disabled {
+  opacity: 0.28;
+  cursor: default;
 }
 
 .day-button {
@@ -451,10 +483,7 @@ button {
 }
 
 .service-card {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  display: block;
   margin-bottom: 8px;
   padding: 12px 13px;
   border: 1px solid #e6e1d6;
@@ -462,44 +491,42 @@ button {
   background: #fff;
 }
 
-.service-card time {
-  font-size: 21px;
+.service-destination {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-times {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.service-times time {
+  font-size: 20px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.service-summary {
-  min-width: 0;
+.service-times span {
+  color: #8c9892;
+  font-size: 13px;
 }
 
-.service-summary strong,
-.service-summary span {
+.service-line {
   display: block;
+  margin-top: 7px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.service-summary strong {
-  font-size: 12px;
-}
-
-.service-summary span {
-  margin-top: 4px;
   color: var(--muted);
   font-size: 9px;
-}
-
-.demand-chip {
-  padding: 5px 7px;
-  border-radius: 7px;
-  background: #fff0d6;
-  color: #895b13;
-  font-size: 8px;
-  font-weight: 800;
-  text-decoration: none;
-  text-transform: uppercase;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-day {

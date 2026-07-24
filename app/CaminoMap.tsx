@@ -142,9 +142,6 @@ function waterDropImage() {
   context.closePath();
   context.fillStyle = "#087cc1";
   context.fill();
-  context.lineWidth = 5;
-  context.strokeStyle = "#ffffff";
-  context.stroke();
 
   context.beginPath();
   context.arc(18, 32, 4, 0, Math.PI * 2);
@@ -465,12 +462,10 @@ export default function CaminoMap() {
     map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", async () => {
-      const [busClusterIcon, busSingleIcon, shellIcon] = await Promise.all([
-        map.loadImage(assetPath("icons/bus-cluster.png")),
+      const [busSingleIcon, shellIcon] = await Promise.all([
         map.loadImage(assetPath("icons/bus-single.png")),
         map.loadImage(assetPath("icons/santiago-shell.png")),
       ]);
-      map.addImage("bus-stop-cluster", busClusterIcon.data, { pixelRatio: 11 });
       map.addImage("bus-silhouette", busSingleIcon.data, { pixelRatio: 10 });
       map.addImage("santiago-shell", shellIcon.data, { pixelRatio: 12 });
       map.addImage("water-drop", waterDropImage(), { pixelRatio: 2 });
@@ -480,22 +475,12 @@ export default function CaminoMap() {
         data: data.routes,
       });
       map.addLayer({
-        id: "route-casing",
-        type: "line",
-        source: "camino-routes",
-        paint: {
-          "line-color": "#34413b",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 7, 14, 11],
-          "line-opacity": 0.68,
-        },
-      });
-      map.addLayer({
         id: "route-lines",
         type: "line",
         source: "camino-routes",
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 4, 14, 7],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 5, 14, 8],
           "line-opacity": 1,
         },
       });
@@ -513,20 +498,20 @@ export default function CaminoMap() {
         source: "bus-stops",
         filter: ["has", "point_count"],
         layout: {
-          "icon-image": "bus-stop-cluster",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 0.9, 12.5, 1.05],
+          "icon-image": "bus-silhouette",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 1.25, 12.5, 1.42],
           "icon-allow-overlap": true,
           "icon-padding": 4,
           "text-field": ["get", "point_count_abbreviated"],
           "text-font": ["Noto Sans Medium"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 8.8, 11, 12.5, 13],
-          "text-offset": [0, 0.18],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 8.8, 13, 12.5, 15],
+          "text-offset": [0, 0],
           "text-allow-overlap": true,
         },
         paint: {
           "text-color": "#ffffff",
-          "text-halo-color": "rgba(0,0,0,.32)",
-          "text-halo-width": 0.8,
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 0.9,
         },
       });
       map.addLayer({
@@ -567,8 +552,6 @@ export default function CaminoMap() {
         },
         paint: {
           "text-color": "#ffffff",
-          "text-halo-color": "rgba(0,79,124,.34)",
-          "text-halo-width": 0.8,
         },
       });
       map.addLayer({
@@ -711,7 +694,9 @@ export default function CaminoMap() {
       <div ref={mapContainer} className="map-canvas" aria-label="Offline Camino de Santiago map" />
 
       <header className="map-header">
-        <div className="brand-mark" aria-hidden="true">C</div>
+        <div className="brand-mark" aria-hidden="true">
+          <img src={assetPath("icons/santiago-shell.png")} alt="" />
+        </div>
         <div>
           <strong>Camino Francés</strong>
           <span className={offlineReady ? "status ready" : "status"}>

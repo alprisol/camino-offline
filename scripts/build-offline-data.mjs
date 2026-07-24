@@ -18,7 +18,7 @@ const stageConfig = [
     name: "Sarria → Portomarín",
     shortName: "Portomarín",
     file: "camino-de-santiago-frances-1-de-6-desde-sarria-a-portomarin-.gpx",
-    color: "#174f36",
+    color: "#E0796C",
     destinations: [270491, 2704936],
   },
   {
@@ -26,7 +26,7 @@ const stageConfig = [
     name: "Portomarín → Melide",
     shortName: "Melide",
     file: "camino-santiago-etapa-portomarin-melide.gpx",
-    color: "#24714c",
+    color: "#D75342",
     destinations: [150462, 15046145],
   },
   {
@@ -34,7 +34,7 @@ const stageConfig = [
     name: "Melide → O Pedrouzo",
     shortName: "O Pedrouzo",
     file: "melide-iglesia-de-santa-maria-de-melide-capilla-de-la-magdal.gpx",
-    color: "#3c9261",
+    color: "#B93827",
     destinations: [1506610],
   },
   {
@@ -42,7 +42,7 @@ const stageConfig = [
     name: "O Pedrouzo → Santiago",
     shortName: "Santiago",
     file: "pedrouzo-santiago-de-compostela-etapa-12-camino-primitivo.gpx",
-    color: "#71b88b",
+    color: "#8B2A1D",
     destinations: [15078158, 15078139, 15078161],
   },
 ];
@@ -75,6 +75,22 @@ function cumulativeDistances(points) {
     cumulative.push(cumulative[i - 1] + haversine(points[i - 1], points[i]));
   }
   return cumulative;
+}
+
+function syncStagePalette(data) {
+  const palette = new Map(stageConfig.map((stage) => [stage.id, stage.color]));
+  data.stages = data.stages.map((stage) => ({
+    ...stage,
+    color: palette.get(stage.id) ?? stage.color,
+  }));
+  data.routes.features = data.routes.features.map((feature) => ({
+    ...feature,
+    properties: {
+      ...feature.properties,
+      color: palette.get(feature.properties.id) ?? feature.properties.color,
+    },
+  }));
+  return data;
 }
 
 function sampleTrack(points, cumulative, spacingKm) {
@@ -450,6 +466,15 @@ async function main() {
     });
   }
 
+  if (process.argv.includes("--palette-only")) {
+    const existingPath = path.join(ROOT, "public", "data", "camino-data.json");
+    const existing = syncStagePalette(JSON.parse(await readFile(existingPath, "utf8")));
+    existing.generatedAt = new Date().toISOString();
+    await writeFile(existingPath, JSON.stringify(existing));
+    console.log(`Updated ${existing.stages.length} stages with the coral palette.`);
+    return;
+  }
+
   if (process.argv.includes("--water-only")) {
     const existingPath = path.join(ROOT, "public", "data", "camino-data.json");
     const existing = JSON.parse(await readFile(existingPath, "utf8"));
@@ -463,7 +488,7 @@ async function main() {
 
   if (process.argv.includes("--refresh-current")) {
     const existingPath = path.join(ROOT, "public", "data", "camino-data.json");
-    const existing = JSON.parse(await readFile(existingPath, "utf8"));
+    const existing = syncStagePalette(JSON.parse(await readFile(existingPath, "utf8")));
     const refreshedStops = [];
     for (const stage of stages) {
       const candidates = existing.stops.filter((stop) => stop.stageId === stage.id);

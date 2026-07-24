@@ -42,6 +42,14 @@ test("bundles the offline map, data, worker, and manifest", async () => {
     await readFile(new URL("../public/data/camino-data.json", import.meta.url), "utf8"),
   );
   assert.equal(data.stages.length, 4);
+  assert.deepEqual(
+    data.stages.map((stage) => stage.color),
+    ["#E0796C", "#D75342", "#B93827", "#8B2A1D"],
+  );
+  assert.deepEqual(
+    data.routes.features.map((feature) => feature.properties.color),
+    ["#E0796C", "#D75342", "#B93827", "#8B2A1D"],
+  );
   assert.equal(data.stops.length, 65);
   assert.ok(data.fountains.length >= 130);
   assert.ok(data.stops.every((stop) => stop.services.length > 0));
@@ -56,7 +64,14 @@ test("bundles the offline map, data, worker, and manifest", async () => {
     readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
     access(new URL("../public/manifest.webmanifest", import.meta.url)),
     access(new URL("../public/og.png", import.meta.url)),
+    access(new URL("../public/fonts/roboto/roboto-latin-variable.woff2", import.meta.url)),
   ]);
   assert.match(worker, /data\/camino\.pmtiles/);
+  assert.match(worker, /fonts\/roboto\/roboto-latin-variable\.woff2/);
   assert.match(worker, /postMessage\(\{ ok: true \}\)/);
+
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(styles, /@font-face[\s\S]*roboto-latin-variable\.woff2/);
+  assert.match(styles, /font-family: "Roboto Variable", Roboto, Arial, sans-serif/);
+  assert.doesNotMatch(styles, /font-family:\s*(?:Inter|Georgia|.*Times New Roman)/);
 });

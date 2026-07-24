@@ -94,6 +94,8 @@ const DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Madrid",
 });
 
+const CATHEDRAL_COORDINATES: Coordinates = [-8.5446277, 42.8804004];
+
 declare global {
   interface Window {
     __CAMINO_BASE_PATH__?: string;
@@ -151,6 +153,27 @@ function waterDropImage() {
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
+function waterDropOutlineImage() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 72;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable");
+
+  context.beginPath();
+  context.moveTo(32, 4);
+  context.bezierCurveTo(28, 14, 10, 30, 10, 45);
+  context.bezierCurveTo(10, 60, 20, 68, 32, 68);
+  context.bezierCurveTo(44, 68, 54, 60, 54, 45);
+  context.bezierCurveTo(54, 30, 36, 14, 32, 4);
+  context.closePath();
+  context.lineWidth = 6;
+  context.strokeStyle = "#087cc1";
+  context.stroke();
+
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
 function toPointCollection<T extends Stop | Fountain>(items: T[]) {
   return {
     type: "FeatureCollection" as const,
@@ -202,7 +225,10 @@ function StopSheet({
       <button className="close-button" type="button" onClick={onClose} aria-label="Close bus details">
         ×
       </button>
-      <h2>{stop.name}</h2>
+      <div className="bus-sheet-heading">
+        <img src={assetPath("icons/bus-silhouette.png")} alt="" aria-hidden="true" />
+        <h2>{stop.name}</h2>
+      </div>
 
       <div className="date-picker">
         <button
@@ -309,7 +335,10 @@ function InfoSheet({ data, onClose }: { data: CaminoData; onClose: () => void })
         whenever you have a connection.
       </p>
       <div className="legend">
-        <span><i className="legend-bus">B</i> bus to the stage finish</span>
+        <span>
+          <img className="legend-bus" src={assetPath("icons/bus-silhouette.png")} alt="" />
+          bus to the stage finish
+        </span>
         <span><i className="legend-water" /> drinking water</span>
       </div>
     </section>
@@ -426,8 +455,15 @@ export default function CaminoMap() {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");
     map.on("rotate", () => setBearing(map.getBearing()));
 
-    map.on("load", () => {
+    map.on("load", async () => {
+      const [busIcon, shellIcon] = await Promise.all([
+        map.loadImage(assetPath("icons/bus-silhouette.png")),
+        map.loadImage(assetPath("icons/santiago-shell.png")),
+      ]);
+      map.addImage("bus-silhouette", busIcon.data, { pixelRatio: 12 });
+      map.addImage("santiago-shell", shellIcon.data, { pixelRatio: 12 });
       map.addImage("water-drop", waterDropImage(), { pixelRatio: 2 });
+      map.addImage("water-drop-outline", waterDropOutlineImage(), { pixelRatio: 2 });
       map.addSource("camino-routes", {
         type: "geojson",
         data: data.routes,
@@ -437,9 +473,9 @@ export default function CaminoMap() {
         type: "line",
         source: "camino-routes",
         paint: {
-          "line-color": "#ffffff",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 5, 14, 9],
-          "line-opacity": 0.92,
+          "line-color": "#34413b",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 5.5, 14, 9.5],
+          "line-opacity": 0.75,
         },
       });
       map.addLayer({
@@ -462,60 +498,36 @@ export default function CaminoMap() {
       });
       map.addLayer({
         id: "bus-clusters",
-        type: "circle",
-        source: "bus-stops",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": "#123d2e",
-          "circle-radius": ["step", ["get", "point_count"], 16, 10, 19, 25, 23],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2.5,
-          "circle-opacity": ["interpolate", ["linear"], ["zoom"], 9.4, 0, 10.4, 1],
-          "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 9.4, 0, 10.4, 1],
-        },
-      });
-      map.addLayer({
-        id: "bus-cluster-count",
         type: "symbol",
         source: "bus-stops",
         filter: ["has", "point_count"],
         layout: {
+          "icon-image": "bus-silhouette",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 0.95, 12.5, 1.1],
+          "icon-allow-overlap": true,
+          "icon-padding": 4,
           "text-field": ["get", "point_count_abbreviated"],
           "text-font": ["Noto Sans Medium"],
-          "text-size": 12,
+          "text-size": ["interpolate", ["linear"], ["zoom"], 8.8, 11, 12.5, 13],
+          "text-offset": [0, 0.2],
+          "text-allow-overlap": true,
         },
         paint: {
           "text-color": "#ffffff",
-          "text-opacity": ["interpolate", ["linear"], ["zoom"], 9.4, 0, 10.4, 1],
+          "text-halo-color": "rgba(0,0,0,.32)",
+          "text-halo-width": 0.8,
         },
       });
       map.addLayer({
         id: "bus-points",
-        type: "circle",
-        source: "bus-stops",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": "#ffffff",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 8, 14, 13],
-          "circle-stroke-color": "#123d2e",
-          "circle-stroke-width": 3,
-          "circle-opacity": ["interpolate", ["linear"], ["zoom"], 9.7, 0, 10.7, 1],
-          "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 9.7, 0, 10.7, 1],
-        },
-      });
-      map.addLayer({
-        id: "bus-letter",
         type: "symbol",
         source: "bus-stops",
         filter: ["!", ["has", "point_count"]],
         layout: {
-          "text-field": "B",
-          "text-font": ["Noto Sans Medium"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 9, 14, 13],
-        },
-        paint: {
-          "text-color": "#123d2e",
-          "text-opacity": ["interpolate", ["linear"], ["zoom"], 9.7, 0, 10.7, 1],
+          "icon-image": "bus-silhouette",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.64, 15, 0.82],
+          "icon-allow-overlap": false,
+          "icon-padding": 5,
         },
       });
 
@@ -528,29 +540,25 @@ export default function CaminoMap() {
       });
       map.addLayer({
         id: "water-clusters",
-        type: "circle",
-        source: "fountains",
-        filter: ["has", "point_count"],
-        minzoom: 11.2,
-        paint: {
-          "circle-color": "#087cc1",
-          "circle-radius": ["step", ["get", "point_count"], 13, 5, 16, 12, 19],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2.5,
-        },
-      });
-      map.addLayer({
-        id: "water-cluster-count",
         type: "symbol",
         source: "fountains",
         filter: ["has", "point_count"],
-        minzoom: 11.2,
         layout: {
+          "icon-image": "water-drop-outline",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 1.02, 13, 1.2],
+          "icon-allow-overlap": true,
+          "icon-padding": 4,
           "text-field": ["get", "point_count_abbreviated"],
           "text-font": ["Noto Sans Medium"],
-          "text-size": 11,
+          "text-size": ["interpolate", ["linear"], ["zoom"], 8.8, 11, 13, 13],
+          "text-offset": [0, 0.28],
+          "text-allow-overlap": true,
         },
-        paint: { "text-color": "#ffffff" },
+        paint: {
+          "text-color": "#087cc1",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.4,
+        },
       });
       map.addLayer({
         id: "water-points",
@@ -563,6 +571,26 @@ export default function CaminoMap() {
           "icon-size": ["interpolate", ["linear"], ["zoom"], 11.2, 0.82, 15, 1.12],
           "icon-allow-overlap": true,
           "icon-padding": 2,
+        },
+      });
+
+      map.addSource("cathedral", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: { name: "Catedral de Santiago de Compostela" },
+          geometry: { type: "Point", coordinates: CATHEDRAL_COORDINATES },
+        },
+      });
+      map.addLayer({
+        id: "cathedral-marker",
+        type: "symbol",
+        source: "cathedral",
+        layout: {
+          "icon-image": "santiago-shell",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 8.8, 0.62, 14, 0.86],
+          "icon-allow-overlap": true,
+          "icon-padding": 4,
         },
       });
 
@@ -598,8 +626,22 @@ export default function CaminoMap() {
           )
           .addTo(map);
       });
+      map.on("click", "cathedral-marker", () => {
+        new maplibregl.Popup({ closeButton: false, offset: 22 })
+          .setLngLat(CATHEDRAL_COORDINATES)
+          .setHTML(
+            '<strong>Catedral de Santiago</strong><span>End of the Camino · <a href="https://catedraldesantiago.es/" target="_blank" rel="noreferrer">official website</a></span>',
+          )
+          .addTo(map);
+      });
 
-      const interactiveLayers = ["bus-clusters", "bus-points", "water-clusters", "water-points"];
+      const interactiveLayers = [
+        "bus-clusters",
+        "bus-points",
+        "water-clusters",
+        "water-points",
+        "cathedral-marker",
+      ];
       for (const layerId of interactiveLayers) {
         map.on("mouseenter", layerId, () => {
           map.getCanvas().style.cursor = "pointer";
@@ -694,12 +736,15 @@ export default function CaminoMap() {
       )}
 
       <button className="north-button" type="button" onClick={resetNorth} aria-label="Reset map orientation to north">
-        <span style={{ transform: `rotate(${-bearing}deg)` }} aria-hidden="true">↑</span>
-        <small>N</small>
+        <span
+          className="compass-glyph"
+          style={{ transform: `rotate(${-bearing}deg)` }}
+          aria-hidden="true"
+        />
       </button>
 
       <button className="locate-button" type="button" onClick={locateUser} aria-label="Zoom to my current position">
-        <span aria-hidden="true" />
+        <img src={assetPath("icons/gps-position.png")} alt="" aria-hidden="true" />
       </button>
 
       {locationMessage && <div className="toast" role="status">{locationMessage}</div>}

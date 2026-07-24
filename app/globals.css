@@ -10,6 +10,7 @@
 }
 
 :root {
+  color-scheme: light only;
   --ink: #13231d;
   --muted: #65716b;
   --paper: #f7f4ec;
@@ -227,7 +228,7 @@ button {
   height: 28px;
   place-items: center;
   border-radius: 10px;
-  color: #fff;
+  color: #13231d;
   font-size: 11px;
   font-weight: 800;
 }
@@ -257,68 +258,62 @@ button {
 .locate-button {
   right: 14px;
   bottom: max(16px, env(safe-area-inset-bottom));
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .north-button {
-  position: fixed;
-  z-index: 6;
-  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 184px);
-  left: 12px;
-  display: grid;
-  width: 42px;
-  height: 42px;
-  padding: 5px 0 3px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 82%);
-  border-radius: 14px;
-  background: rgb(250 248 242 / 94%);
-  box-shadow: var(--shadow);
-  cursor: pointer;
+  right: 14px;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 60px);
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
 }
 
-.north-button span {
+.compass-glyph {
+  position: relative;
   display: block;
-  color: var(--green);
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 15px;
+  width: 30px;
+  height: 30px;
+  border: 2.5px solid #13231d;
+  border-radius: 50%;
   transition: transform 120ms linear;
 }
 
-.north-button small {
-  color: #68736d;
-  font-size: 8px;
-  font-weight: 900;
-  line-height: 8px;
-}
-
-.locate-button span {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--green);
-  border-radius: 50%;
-}
-
-.locate-button span::before {
+.compass-glyph::before,
+.compass-glyph::after {
   position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: var(--green);
+  left: 50%;
+  width: 0;
+  height: 0;
   content: "";
+  transform: translateX(-50%);
 }
 
-.locate-button span::after {
-  position: absolute;
-  top: -6px;
-  left: 7px;
-  width: 2px;
-  height: 28px;
-  background: linear-gradient(var(--green) 0 4px, transparent 4px 24px, var(--green) 24px);
-  content: "";
+.compass-glyph::before {
+  top: 3px;
+  border-right: 4px solid transparent;
+  border-bottom: 10px solid #fe575e;
+  border-left: 4px solid transparent;
+}
+
+.compass-glyph::after {
+  bottom: 3px;
+  border-top: 10px solid #13231d;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.locate-button img {
+  display: block;
+  width: 42px;
+  height: 40px;
+  border-radius: 12px;
 }
 
 .detail-sheet {
@@ -404,8 +399,22 @@ button {
 }
 
 .bus-sheet h2 {
-  margin-top: 22px;
+  margin: 0;
   font-size: clamp(21px, 5.5vw, 28px);
+}
+
+.bus-sheet-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 20px 54px 0 22px;
+}
+
+.bus-sheet-heading img {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .walk-away {
@@ -638,16 +647,10 @@ button {
 }
 
 .legend-bus {
-  display: grid;
-  width: 21px;
-  height: 21px;
-  place-items: center;
-  border: 2px solid var(--green);
-  border-radius: 50%;
-  background: #fff;
-  color: var(--green);
-  font-size: 9px;
-  font-style: normal;
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .legend-water {

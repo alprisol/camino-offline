@@ -18,7 +18,7 @@ const stageConfig = [
     name: "Sarria → Portomarín",
     shortName: "Portomarín",
     file: "camino-de-santiago-frances-1-de-6-desde-sarria-a-portomarin-.gpx",
-    color: "#E0796C",
+    color: "#FE575E",
     destinations: [270491, 2704936],
   },
   {
@@ -26,7 +26,7 @@ const stageConfig = [
     name: "Portomarín → Melide",
     shortName: "Melide",
     file: "camino-santiago-etapa-portomarin-melide.gpx",
-    color: "#D75342",
+    color: "#FEE252",
     destinations: [150462, 15046145],
   },
   {
@@ -34,7 +34,7 @@ const stageConfig = [
     name: "Melide → O Pedrouzo",
     shortName: "O Pedrouzo",
     file: "melide-iglesia-de-santa-maria-de-melide-capilla-de-la-magdal.gpx",
-    color: "#B93827",
+    color: "#61C27D",
     destinations: [1506610],
   },
   {
@@ -42,7 +42,7 @@ const stageConfig = [
     name: "O Pedrouzo → Santiago",
     shortName: "Santiago",
     file: "pedrouzo-santiago-de-compostela-etapa-12-camino-primitivo.gpx",
-    color: "#8B2A1D",
+    color: "#58CAE5",
     destinations: [15078158, 15078139, 15078161],
   },
 ];
@@ -471,7 +471,7 @@ async function main() {
     const existing = syncStagePalette(JSON.parse(await readFile(existingPath, "utf8")));
     existing.generatedAt = new Date().toISOString();
     await writeFile(existingPath, JSON.stringify(existing));
-    console.log(`Updated ${existing.stages.length} stages with the coral palette.`);
+    console.log(`Updated ${existing.stages.length} stages with the route palette.`);
     return;
   }
 

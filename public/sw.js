@@ -1,4 +1,4 @@
-const CACHE_NAME = "camino-offline-v4";
+const CACHE_NAME = "camino-offline-v5";
 const BASE_URL = self.registration.scope;
 const assetUrl = (path = "") => new URL(path, BASE_URL).toString();
 const APP_SHELL = assetUrl();
@@ -12,6 +12,9 @@ const CORE_ASSETS = [
   assetUrl("sprites/light.png"),
   assetUrl("sprites/light@2x.json"),
   assetUrl("sprites/light@2x.png"),
+  assetUrl("icons/bus-silhouette.png"),
+  assetUrl("icons/gps-position.png"),
+  assetUrl("icons/santiago-shell.png"),
   assetUrl("fonts/roboto/roboto-latin-variable.woff2"),
   assetUrl("fonts/Noto%20Sans%20Regular/0-255.pbf"),
   assetUrl("fonts/Noto%20Sans%20Regular/256-511.pbf"),

@@ -9,6 +9,14 @@ A phone-first offline map for four Camino Francés stages:
 
 The app bundles the basemap, GPX tracks, 65 useful bus stops, official scheduled services, and 126 drinking-water points. Bus and water markers cluster and appear progressively as the map is zoomed.
 
+## Public map
+
+The free GitHub Pages version is published at:
+
+https://alprisol.github.io/camino-offline/
+
+Every push to `main` rebuilds and deploys the static site through the workflow in `.github/workflows/deploy-pages.yml`.
+
 ## Run locally
 
 ```powershell
@@ -17,6 +25,12 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+To test the GitHub Pages build locally:
+
+```powershell
+npm run build:pages
+```
 
 ## Use on a phone without signal
 

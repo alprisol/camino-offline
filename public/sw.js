@@ -1,20 +1,23 @@
-const CACHE_NAME = "camino-offline-v1";
-const MAP_ARCHIVE = "/data/camino.pmtiles";
+const CACHE_NAME = "camino-offline-v2";
+const BASE_URL = self.registration.scope;
+const assetUrl = (path = "") => new URL(path, BASE_URL).toString();
+const APP_SHELL = assetUrl();
+const MAP_ARCHIVE = assetUrl("data/camino.pmtiles");
 const CORE_ASSETS = [
-  "/",
-  "/manifest.webmanifest",
-  "/data/camino-data.json",
+  APP_SHELL,
+  assetUrl("manifest.webmanifest"),
+  assetUrl("data/camino-data.json"),
   MAP_ARCHIVE,
-  "/sprites/light.json",
-  "/sprites/light.png",
-  "/sprites/light@2x.json",
-  "/sprites/light@2x.png",
-  "/fonts/Noto%20Sans%20Regular/0-255.pbf",
-  "/fonts/Noto%20Sans%20Regular/256-511.pbf",
-  "/fonts/Noto%20Sans%20Medium/0-255.pbf",
-  "/fonts/Noto%20Sans%20Medium/256-511.pbf",
-  "/fonts/Noto%20Sans%20Italic/0-255.pbf",
-  "/fonts/Noto%20Sans%20Italic/256-511.pbf"
+  assetUrl("sprites/light.json"),
+  assetUrl("sprites/light.png"),
+  assetUrl("sprites/light@2x.json"),
+  assetUrl("sprites/light@2x.png"),
+  assetUrl("fonts/Noto%20Sans%20Regular/0-255.pbf"),
+  assetUrl("fonts/Noto%20Sans%20Regular/256-511.pbf"),
+  assetUrl("fonts/Noto%20Sans%20Medium/0-255.pbf"),
+  assetUrl("fonts/Noto%20Sans%20Medium/256-511.pbf"),
+  assetUrl("fonts/Noto%20Sans%20Italic/0-255.pbf"),
+  assetUrl("fonts/Noto%20Sans%20Italic/256-511.pbf")
 ];
 
 self.addEventListener("install", (event) => {
@@ -36,7 +39,8 @@ self.addEventListener("message", (event) => {
   if (event.data?.type !== "CACHE_RESOURCES" || !Array.isArray(event.data.resources)) return;
   const localResources = event.data.resources.filter((url) => {
     try {
-      return new URL(url).origin === self.location.origin;
+      const resource = new URL(url);
+      return resource.origin === self.location.origin && resource.href.startsWith(BASE_URL);
     } catch {
       return false;
     }
@@ -73,7 +77,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== "GET") return;
 
-  if (url.pathname === MAP_ARCHIVE) {
+  if (url.href === MAP_ARCHIVE) {
     event.respondWith(rangedMapResponse(event.request));
     return;
   }
@@ -83,10 +87,10 @@ self.addEventListener("fetch", (event) => {
       fetch(event.request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(APP_SHELL, copy));
           return response;
         })
-        .catch(() => caches.match("/")),
+        .catch(() => caches.match(APP_SHELL)),
     );
     return;
   }

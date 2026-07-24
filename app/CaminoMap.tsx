@@ -85,6 +85,22 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Madrid",
 });
 
+declare global {
+  interface Window {
+    __CAMINO_BASE_PATH__?: string;
+  }
+}
+
+function basePath() {
+  const configured = typeof window !== "undefined" ? window.__CAMINO_BASE_PATH__ : undefined;
+  const value = configured || "/";
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function assetPath(path: string) {
+  return `${basePath()}${path.replace(/^\/+/, "")}`;
+}
+
 function canonicalDates(start: string) {
   const base = new Date(`${start}T12:00:00+02:00`);
   return Array.from({ length: 7 }, (_, index) => {
@@ -289,7 +305,7 @@ export default function CaminoMap() {
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/data/camino-data.json")
+    fetch(assetPath("data/camino-data.json"))
       .then((response) => {
         if (!response.ok) throw new Error("Could not load Camino data");
         return response.json();
@@ -302,7 +318,9 @@ export default function CaminoMap() {
     if (!("serviceWorker" in navigator)) return;
     const register = async () => {
       try {
-        const registration = await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register(assetPath("sw.js"), {
+          scope: basePath(),
+        });
         await navigator.serviceWorker.ready;
         setOfflineReady(true);
         const resources = performance
@@ -329,12 +347,12 @@ export default function CaminoMap() {
       container: mapContainer.current,
       style: {
         version: 8,
-        glyphs: `${window.location.origin}/fonts/{fontstack}/{range}.pbf`,
-        sprite: `${window.location.origin}/sprites/light`,
+        glyphs: `${window.location.origin}${assetPath("fonts/{fontstack}/{range}.pbf")}`,
+        sprite: `${window.location.origin}${assetPath("sprites/light")}`,
         sources: {
           protomaps: {
             type: "vector",
-            url: `pmtiles://${window.location.origin}/data/camino.pmtiles`,
+            url: `pmtiles://${window.location.origin}${assetPath("data/camino.pmtiles")}`,
             attribution: "© OpenStreetMap contributors · Protomaps",
           },
         },

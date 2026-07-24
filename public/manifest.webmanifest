@@ -1,0 +1,11 @@
+{
+  "name": "Camino Offline — buses & water",
+  "short_name": "Camino Offline",
+  "description": "Offline bus and drinking-water map for four Camino Francés stages.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ec",
+  "theme_color": "#174f36",
+  "orientation": "portrait-primary",
+  "lang": "en"
+}
